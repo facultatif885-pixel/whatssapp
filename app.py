@@ -1,71 +1,69 @@
 import streamlit as st
 import requests
-import json
 import time
 import re
 
-# إعدادات الواجهة لتناسب الهاتف
+# إعدادات الواجهة
 st.set_page_config(page_title="WhatsApp Voice Bot", layout="centered")
 
-# بيانات منصة Green API الخاصة بك
+# بيانات Green API الخاصة بك (ثابتة وجاهزة)
 ID_INSTANCE = "7107566642"
 API_TOKEN = "257db6c4dc0d4ed6a1471041b2964da6579c2986afca4a2cbc"
 
-st.title("🎙️ أداة إرسال الرسائل الصوتية")
+st.title("🎙️ مرسل الرسائل الصوتية الذكي")
 st.markdown("---")
 
-# الحقول المطلوبة
-audio_url = st.text_input("🔗 رابط ملف الصوت المباشر (Direct Link)", placeholder="https://example.com/voice.ogg")
-numbers_input = st.text_area("📱 أدخل الأرقام (رقم في كل سطر)", placeholder="06XXXXXXXX\n07XXXXXXXX")
+# 1. خيار رفع الملف الصوتي مباشرة
+uploaded_file = st.file_uploader("📤 اختر ملف الصوت من هاتفك (.ogg أو .mp3)", type=['ogg', 'mp3'])
+
+# 2. مكان إدخال الأرقام
+numbers_input = st.text_area("📱 أدخل الأرقام (رقم في كل سطر)", placeholder="06XXXXXXXX\n07XXXXXXXX", height=200)
 
 def clean_number(phone):
-    # تنظيف الرقم من المسافات أو الرموز
-    phone = re.sub(r'\D', '', phone)
-    
-    # تصحيح الأرقام المغربية تلقائياً
-    if phone.startswith('0'):
+    phone = re.sub(r'\D', '', phone) # حذف الرموز
+    if phone.startswith('0'): # تحويل أرقام المغرب للصيغة الدولية
         phone = '212' + phone[1:]
-    elif len(phone) == 9 and (phone.startswith('6') or phone.startswith('7') or phone.startswith('5')):
+    elif len(phone) == 9:
         phone = '212' + phone
-        
     return phone
 
 if st.button("🚀 إطلاق الإرسال الآن"):
-    if not audio_url or not numbers_input:
-        st.error("الرجاء إدخال الرابط وقائمة الأرقام!")
+    if not uploaded_file or not numbers_input:
+        st.error("الرجاء رفع ملف صوتي وإدخال الأرقام أولاً!")
     else:
-        # تحويل النص إلى قائمة أرقام نظيفة
-        raw_numbers = [n.strip() for n in numbers_input.split('\n') if n.strip()]
-        total = len(raw_numbers)
+        # تجهيز الملف للإرسال (رفع مؤقت لـ Green API)
+        files = {'file': (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
         
-        st.info(f"جاري المعالجة والإرسال إلى {total} رقم...")
-        progress_bar = st.progress(0)
-        status_text = st.empty()
+        # أولاً: رفع الملف للمنصة لجلب رابط مؤقت
+        upload_url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/uploadFile/{API_TOKEN}"
+        
+        try:
+            with st.spinner('جاري تجهيز الملف...'):
+                upload_res = requests.post(upload_url, files=files)
+                file_url = upload_res.json().get('urlFile')
 
-        for index, raw_num in enumerate(raw_numbers):
-            clean_num = clean_number(raw_num)
-            url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendFileByUrl/{API_TOKEN}"
-            
-            payload = {
-                "chatId": f"{clean_num}@c.us",
-                "urlFile": audio_url,
-                "fileName": "voice_message.ogg"
-            }
-            
-            try:
-                # إرسال الطلب للمنصة
-                response = requests.post(url, json=payload, timeout=20)
-                if response.status_code == 200:
-                    st.success(f"✅ تم الإرسال بنجاح إلى: {clean_num}")
-                else:
-                    st.warning(f"⚠️ فشل مع {clean_num}: تأكد من ربط الهاتف بالمنصة")
-            except Exception as e:
-                st.error(f"❌ خطأ فني مع الرقم {clean_num}")
-            
-            # تحديث شريط التقدم والانتظار قليلاً لتجنب الحظر
-            progress_bar.progress((index + 1) / total)
-            status_text.text(f"تم إرسال {index + 1} من أصل {total}")
-            time.sleep(3) 
-
-        st.balloons()
-        st.success("✅ انتهت العملية بنجاح!")
+            if file_url:
+                raw_numbers = [n.strip() for n in numbers_input.split('\n') if n.strip()]
+                st.info(f"جاري الإرسال إلى {len(raw_numbers)} رقم...")
+                
+                for num in raw_numbers:
+                    clean_num = clean_number(num)
+                    send_url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendFileByUrl/{API_TOKEN}"
+                    payload = {
+                        "chatId": f"{clean_num}@c.us",
+                        "urlFile": file_url,
+                        "fileName": "voice.ogg"
+                    }
+                    
+                    res = requests.post(send_url, json=payload)
+                    if res.status_code == 200:
+                        st.success(f"✅ تم الإرسال لـ: {clean_num}")
+                    else:
+                        st.warning(f"⚠️ فشل مع: {clean_num}")
+                    
+                    time.sleep(2) # تأخير لتجنب الحظر
+                st.balloons()
+            else:
+                st.error("فشل رفع الملف للمنصة، تأكد من إعدادات Green API.")
+        except Exception as e:
+            st.error(f"حدث خطأ فني: {str(e)}")
