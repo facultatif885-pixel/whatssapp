@@ -5,7 +5,7 @@ import re
 
 # --- 1. إعدادات الصفحة والمظهر الملكي ---
 st.set_page_config(
-    page_title="SANDIZ VOICE PRO",
+    page_title="send message pro",
     page_icon="🚀",
     layout="centered"
 )
