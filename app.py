@@ -4,61 +4,68 @@ import json
 import time
 import re
 
-# إعدادات الصفحة للهاتف
-st.set_page_config(page_title="WhatsApp Voice Sender", layout="centered")
+# إعدادات الواجهة لتناسب الهاتف
+st.set_page_config(page_title="WhatsApp Voice Bot", layout="centered")
 
-st.title("🎙️ مرسل الرسائل الصوتية - Green API")
+# بيانات منصة Green API الخاصة بك
+ID_INSTANCE = "7107566642"
+API_TOKEN = "257db6c4dc0d4ed6a1471041b2964da6579c2986afca4a2cbc"
+
+st.title("🎙️ أداة إرسال الرسائل الصوتية")
 st.markdown("---")
 
-# مدخلات الإعدادات (يمكن إخفاؤها في ملف .env لاحقاً)
-with st.expander("⚙️ إعدادات الربط (Green API)"):
-    id_instance = st.text_input("ID Instance", type="password")
-    api_token = st.text_input("API Token", type="password")
-
-# واجهة إدخال البيانات
-audio_url = st.text_input("🔗 رابط ملف الصوت (Direct Link)", placeholder="https://example.com/audio.ogg")
-numbers_input = st.text_area("📱 أدخل الأرقام (رقم في كل سطر)", placeholder="0600000000\n212700000000")
+# الحقول المطلوبة
+audio_url = st.text_input("🔗 رابط ملف الصوت المباشر (Direct Link)", placeholder="https://example.com/voice.ogg")
+numbers_input = st.text_area("📱 أدخل الأرقام (رقم في كل سطر)", placeholder="06XXXXXXXX\n07XXXXXXXX")
 
 def clean_number(phone):
-    # إزالة أي رموز غير رقمية
+    # تنظيف الرقم من المسافات أو الرموز
     phone = re.sub(r'\D', '', phone)
-    # إذا بدأ بـ 06 أو 07 (أرقام المغرب) نضيف 212
+    
+    # تصحيح الأرقام المغربية تلقائياً
     if phone.startswith('0'):
         phone = '212' + phone[1:]
-    # إذا كان الرقم دولياً ولا يبدأ بـ 212 (تعديل حسب الحاجة)
-    elif len(phone) == 9 and not phone.startswith('212'):
+    elif len(phone) == 9 and (phone.startswith('6') or phone.startswith('7') or phone.startswith('5')):
         phone = '212' + phone
+        
     return phone
 
-if st.button("🚀 إطلاق الإرسال"):
-    if not id_instance or not api_token or not audio_url or not numbers_input:
-        st.error("الرجاء ملء جميع الحقول!")
+if st.button("🚀 إطلاق الإرسال الآن"):
+    if not audio_url or not numbers_input:
+        st.error("الرجاء إدخال الرابط وقائمة الأرقام!")
     else:
-        numbers_list = [clean_number(n.strip()) for n in numbers_input.split('\n') if n.strip()]
+        # تحويل النص إلى قائمة أرقام نظيفة
+        raw_numbers = [n.strip() for n in numbers_input.split('\n') if n.strip()]
+        total = len(raw_numbers)
         
-        st.info(f"جاري الإرسال إلى {len(numbers_list)} رقم...")
+        st.info(f"جاري المعالجة والإرسال إلى {total} رقم...")
         progress_bar = st.progress(0)
-        
-        for index, num in enumerate(numbers_list):
-            url = f"https://api.green-api.com/waInstance{id_instance}/sendFileByUrl/{api_token}"
+        status_text = st.empty()
+
+        for index, raw_num in enumerate(raw_numbers):
+            clean_num = clean_number(raw_num)
+            url = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendFileByUrl/{API_TOKEN}"
+            
             payload = {
-                "chatId": f"{num}@c.us",
+                "chatId": f"{clean_num}@c.us",
                 "urlFile": audio_url,
-                "fileName": "voice.ogg"
+                "fileName": "voice_message.ogg"
             }
             
             try:
-                response = requests.post(url, json=payload, timeout=10)
+                # إرسال الطلب للمنصة
+                response = requests.post(url, json=payload, timeout=20)
                 if response.status_code == 200:
-                    st.success(f"✅ تم الإرسال إلى: {num}")
+                    st.success(f"✅ تم الإرسال بنجاح إلى: {clean_num}")
                 else:
-                    st.warning(f"⚠️ فشل مع {num}: {response.text}")
+                    st.warning(f"⚠️ فشل مع {clean_num}: تأكد من ربط الهاتف بالمنصة")
             except Exception as e:
-                st.error(f"❌ خطأ في الرقم {num}: {str(e)}")
+                st.error(f"❌ خطأ فني مع الرقم {clean_num}")
             
-            # تحديث شريط التقدم
-            progress_bar.progress((index + 1) / len(numbers_list))
-            time.sleep(2) # تأخير لتجنب الحظر
+            # تحديث شريط التقدم والانتظار قليلاً لتجنب الحظر
+            progress_bar.progress((index + 1) / total)
+            status_text.text(f"تم إرسال {index + 1} من أصل {total}")
+            time.sleep(3) 
 
         st.balloons()
-        st.success("كتملت العملية!")
+        st.success("✅ انتهت العملية بنجاح!")
