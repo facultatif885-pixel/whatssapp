@@ -21,10 +21,10 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 2. البيانات التقنية (2Chat) ---
-# تم وضع الـ API Key الخاص بك هنا مباشرة
+# مفتاح API الخاص بك
 API_KEY_2CHAT = "UAK14da7dba-aafb-465f-a665-01c2710aa463"
-# ⚠️ هام: ضع رقم هاتفك المربوط بـ 2Chat هنا (بدون +)
-SENDER_PHONE = "212XXXXXXXXX" 
+# رقم هاتفك المرسل المعتمد في 2Chat
+SENDER_PHONE = "212623738383" 
 
 API_ENDPOINT = "https://api.2chat.co/v1/messaging/send/audio"
 
@@ -43,7 +43,7 @@ def load_data():
 audio_library = load_data()
 
 st.markdown("<h1>👑 VOX ROYAL PRO</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>نظام البث الاحترافي المتصل بـ 2Chat</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94a3b8;'>نظام البث الاحترافي عبر 2Chat</p>", unsafe_allow_html=True)
 st.divider()
 
 # --- 4. واجهة المستخدم ---
@@ -57,7 +57,7 @@ with st.container():
     delay = st.slider("الانتظار (ثواني):", 10, 120, 20)
 
 with st.expander("👥 إدارة الأرقام المستهدفة", expanded=True):
-    numbers_input = st.text_area("أدخل الأرقام (تطهير تلقائي):", height=150)
+    numbers_input = st.text_area("أدخل الأرقام هنا:", height=150)
 
 # --- 5. محرك الإرسال ---
 def sanitize(phone):
@@ -68,8 +68,6 @@ def sanitize(phone):
 if st.button("إطلاق الحملة الملكية 🚀"):
     if not current_url or not numbers_input:
         st.warning("⚠️ يرجى اختيار تسجيل وإدخال أرقام.")
-    elif SENDER_PHONE == "212XXXXXXXXX":
-        st.error("❌ خطأ: يرجى كتابة رقم هاتفك المرسل في الكود (SENDER_PHONE).")
     else:
         targets = [n.strip() for n in numbers_input.split('\n') if n.strip()]
         total = len(targets)
@@ -83,6 +81,7 @@ if st.button("إطلاق الحملة الملكية 🚀"):
 
         for index, raw in enumerate(targets):
             num = sanitize(raw)
+            # إعداد البيانات لـ 2Chat
             payload = {
                 "to_number": f"+{num}",
                 "from_number": f"+{SENDER_PHONE}",
@@ -95,8 +94,11 @@ if st.button("إطلاق الحملة الملكية 🚀"):
                 if res.status_code in [200, 201, 202]:
                     status.success(f"✅ [{index+1}/{total}] تم الإرسال للرقم: {num}")
                 else:
-                    # استخراج تفاصيل الخطأ من 2Chat
-                    error_info = res.json().get('error', res.text)
+                    # محاولة قراءة رسالة الخطأ من المنصة
+                    try:
+                        error_info = res.json().get('error', res.text)
+                    except:
+                        error_info = res.text
                     status.error(f"❌ رفض من المنصة لـ {num}: {error_info}")
             
             except Exception as e:
@@ -104,6 +106,7 @@ if st.button("إطلاق الحملة الملكية 🚀"):
 
             progress.progress((index + 1) / total)
             if index < total - 1:
+                # إضافة وقت عشوائي بسيط لزيادة الأمان
                 time.sleep(delay + random.uniform(1, 4))
 
         st.balloons()
