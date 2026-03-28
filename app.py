@@ -42,8 +42,8 @@ def load_audio_library():
 audio_library = load_audio_library()
 
 # بيانات Green API الثابتة
-ID_INSTANCE = "7107566642"
-API_TOKEN = "257db6c4dc0d4ed6a1471041b2964da6579c2986afca4a2cbc"
+ID_INSTANCE = "7107567423"
+API_TOKEN = "bcb03e53bcde4e199d1a907abf87a42ba298303638044cfc81"
 
 st.markdown("<h1 style='text-align: center;'>👑 VOX ROYAL PRO</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94a3b8;'>نظام البث الملكي المتصل سحابياً</p>", unsafe_allow_html=True)
