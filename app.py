@@ -113,6 +113,3 @@ if st.button("تطهير الأرقام وإطلاق الحملة ⚡"):
         st.success(f"✨ اكتملت المهمة بنجاح لـ {total} هدف!")
 
 st.markdown("<p style='text-align: center; color: rgba(148,163,184,0.3); font-size: 10px; margin-top: 30px;'>VOX ROYAL PRO • CLOUD CONNECTED • 2026</p>", unsafe_allow_html=True)
-
-متغير في الكود والوا من غير
-بغيت ضيف ف الكود تنه يبقى خدام وخا نطفيالبيسي او ندير ربفرش 
